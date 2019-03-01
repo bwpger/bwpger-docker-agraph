@@ -1,0 +1,15 @@
+version: '3.5'
+
+services:
+
+  agraph:
+    image: bwpger/agraph
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - /var/data/db/agraph:/var/data/db/agraph
+    ports:
+      - "10000-10034:10000-10034"
+      - "10035:10035"
+    shm_size: '1G'

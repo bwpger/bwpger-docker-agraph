@@ -1,0 +1,89 @@
+# ============================================================================
+#  DOCKERFILE for BWP's ALLEGROGRAPH DOCKER IMAGE
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  BASIC IMAGE REFERENCE
+# ----------------------------------------------------------------------------
+
+FROM centos:7
+
+# ----------------------------------------------------------------------------
+#  IMAGE METADATA
+# ----------------------------------------------------------------------------
+
+LABEL title="BWPGER AGRAPH"
+LABEL description="BW Papersystems' Docker Image for Franz Inc.'s Allegrograph Database"
+LABEL version="A.01.00"
+LABEL maintainer="BWP STU IT <it.stuttgart@bwpapersystems.com>"
+LABEL disclaimer="This image is intended to be used on servers hosted in Germany. German law applies exclusively in all cases and under all circumstances. By using this image you agree to these regulations."
+LABEL shm-size="1G"
+
+MAINTAINER BWP STU IT <it.stuttgart@bwpapersystems.com>
+
+# ----------------------------------------------------------------------------
+#  SETUP
+# ----------------------------------------------------------------------------
+
+# --- SYSTEM PACKAGE INSTALL ---
+
+RUN yum -y update
+RUN yum clean all
+
+# --- ENV VAR SETUP ---
+
+ENV BWPGER_AGRAPH_APPDIR          __BWPGER_AGRAPH_APPDIR__
+ENV BWPGER_AGRAPH_BINDIR          __BWPGER_AGRAPH_BINDIR__
+ENV BWPGER_AGRAPH_DATADIR         __BWPGER_AGRAPH_DATADIR__
+ENV BWPGER_AGRAPH_LOGDIR          __BWPGER_AGRAPH_LOGDIR__
+ENV BWPGER_AGRAPH_CONFIGFILE      __BWPGER_AGRAPH_CONFIGFILE__
+ENV BWPGER_AGRAPH_PIDFILE         __BWPGER_AGRAPH_PIDFILE__
+ENV BWPGER_AGRAPH_APPUSER         __BWPGER_AGRAPH_APPUSER__
+ENV BWPGER_AGRAPH_APPUID          __BWPGER_AGRAPH_APPUID__
+ENV BWPGER_AGRAPH_APPGROUP        __BWPGER_AGRAPH_APPGROUP__
+ENV BWPGER_AGRAPH_APPGID          __BWPGER_AGRAPH_APPGID__
+
+# --- USERS AND GROUPS SETUP ---
+
+RUN groupadd -g __BWPGER_AGRAPH_APPGID__ __BWPGER_AGRAPH_APPGROUP__
+
+RUN mkdir -p __BWPGER_AGRAPH_DATADIR__/..
+RUN useradd -u __BWPGER_AGRAPH_APPUID__ -d __BWPGER_AGRAPH_DATADIR__ -g __BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_APPUSER__
+
+# --- DIRECTORY SETUP ---
+
+# RUN mkdir -p __BWPGER_AGRAPH_APPDIR__ && chown -R __BWPGER_AGRAPH_APPUSER__:__BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_APPDIR__
+# RUN mkdir -p __BWPGER_AGRAPH_BINDIR__ && chown -R __BWPGER_AGRAPH_APPUSER__:__BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_BINDIR__
+RUN chown -R __BWPGER_AGRAPH_APPUSER__:__BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_DATADIR__
+RUN mkdir -p __BWPGER_AGRAPH_LOGDIR__ && chown -R __BWPGER_AGRAPH_APPUSER__:__BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_LOGDIR__
+RUN mkdir -p __BWPGER_AGRAPH_CONFIGDIR__ && chown -R __BWPGER_AGRAPH_APPUSER__:__BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_CONFIGDIR__
+
+# --- AGRAPH INSTALLATION ---
+
+RUN curl -f -o __TGZ__ http://franz.com/ftp/pri/acl/ag/ag__VERSION__/linuxamd64.64/__TGZ__
+
+RUN tar zxf __TGZ__ \
+    && rm -f __TGZ__
+
+RUN pushd agraph-__FINAL_VERSION__ && \
+    ./install-agraph __BWPGER_AGRAPH_APPDIR__ -- --non-interactive \
+       		--config-file __BWPGER_AGRAPH_CONFIGFILE__ \
+		--data-dir __BWPGER_AGRAPH_DATADIR__ \
+		--log-dir __BWPGER_AGRAPH_LOGDIR__ \
+		--pid-file __BWPGER_AGRAPH_PIDFILE__ \
+		--runas-user __BWPGER_AGRAPH_APPUSER__ \
+		--super-user __BWPGER_AGRAPH_SUPERUSER__ \
+		--super-password __BWPGER_AGRAPH_SUPERPASSWORD__ \
+    && chown -R __BWPGER_AGRAPH_APPUSER__:__BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_APPDIR__ \
+    && popd && rm -r agraph-__FINAL_VERSION__
+
+# Augment the config with a SessionPorts directive
+RUN echo "SessionPorts 10000-10034" >> __BWPGER_AGRAPH_CONFIGFILE__
+
+# VOLUME /var/data
+
+EXPOSE 10000-10034 10035
+
+COPY entrypoint.sh __BWPGER_AGRAPH_APPDIR__
+RUN chmod 755 __BWPGER_AGRAPH_APPDIR__/entrypoint.sh
+CMD ["__BWPGER_AGRAPH_APPDIR__/entrypoint.sh"]
