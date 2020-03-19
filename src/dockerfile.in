@@ -74,11 +74,13 @@ RUN pushd agraph-__FINAL_VERSION__ && \
 		--runas-user __BWPGER_AGRAPH_APPUSER__ \
 		--super-user __BWPGER_AGRAPH_SUPERUSER__ \
 		--super-password __BWPGER_AGRAPH_SUPERPASSWORD__ \
-    && chown -R __BWPGER_AGRAPH_APPUSER__:__BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_APPDIR__ \
+    # && chown -R __BWPGER_AGRAPH_APPUSER__:__BWPGER_AGRAPH_APPGROUP__ __BWPGER_AGRAPH_APPDIR__ \
     && popd && rm -r agraph-__FINAL_VERSION__
 
 # Augment the config with a SessionPorts directive
+RUN echo "SuperUser __BWPGER_AGRAPH_SUPERUSER__:__BWPGER_AGRAPH_SUPERPASSWORD__" >> __BWPGER_AGRAPH_CONFIGFILE__
 RUN echo "SessionPorts 10000-10034" >> __BWPGER_AGRAPH_CONFIGFILE__
+RUN echo "AccessLogEnabled yes" >> __BWPGER_AGRAPH_CONFIGFILE__
 
 # VOLUME /var/data
 
